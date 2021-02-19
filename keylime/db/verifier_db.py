@@ -18,6 +18,8 @@ class JSONPickleType(PickleType):  # pylint: disable=abstract-method
 
 class VerfierMain(Base):
     __tablename__ = 'verifiermain'
+    verifier_id = Column(String(80),
+                      primary_key=True)
     agent_id = Column(String(80),
                       primary_key=True)
     v = Column(String(45))
