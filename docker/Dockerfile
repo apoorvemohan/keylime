@@ -5,7 +5,7 @@
 # It is not recommended for use beyond testing scenarios.
 ##############################################################################
 
-FROM fedora:latest
+FROM quay.io/fedora/fedora:33-x86_64
 MAINTAINER Luke Hinds <lhinds@redhat.com>
 LABEL version="1.0.1" description="Keylime - Bootstrapping and Maintaining Trust in the Cloud"
 
@@ -25,6 +25,7 @@ dbus \
 dbus-daemon \
 dbus-devel \
 dnf-plugins-core \
+efivar-devel \
 gcc \
 git \
 glib2-devel \

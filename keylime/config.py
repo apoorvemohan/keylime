@@ -3,6 +3,7 @@ SPDX-License-Identifier: Apache-2.0
 Copyright 2017 Massachusetts Institute of Technology.
 '''
 
+import os
 import os.path
 import configparser
 import sys
@@ -33,6 +34,20 @@ def convert(data):
     return data
 
 
+def environ_bool(env_name, default):
+    val = os.getenv(env_name, 'default').lower()
+    if val in ["on", "true", "1"]:
+        return True
+    if val in ["off", "false", "0"]:
+        return False
+    if val == "default":
+        return default
+    raise ValueError(
+        "Environment variable %s set to invalid value "
+        "%s (use either on/true/1 or off/false/0)" %
+        (env_name, val))
+
+
 # Current Keylime API version
 API_VERSION = '2'
 
@@ -56,7 +71,7 @@ TPM_BENCHMARK_PATH = None
 # set to False to enable keylime to run from the CWD and not require
 # root access.  for testing purposes only
 # all processes will log to the CWD in keylime-all.log
-REQUIRE_ROOT = True
+REQUIRE_ROOT = environ_bool('KEYLIME_REQUIRE_ROOT', True)
 
 # enable printing of keys and other info for debug purposes
 INSECURE_DEBUG = False
@@ -168,9 +183,10 @@ def has_option(section, option):
 
 
 if not REQUIRE_ROOT:
-    WORK_DIR = os.path.abspath(".")
+    DEFAULT_WORK_DIR = os.path.abspath(".")
 else:
-    WORK_DIR = os.getenv('KEYLIME_DIR', '/var/lib/keylime')
+    DEFAULT_WORK_DIR = '/var/lib/keylime'
+WORK_DIR = os.getenv('KEYLIME_DIR', DEFAULT_WORK_DIR)
 
 CA_WORK_DIR = '%s/ca/' % WORK_DIR
 
@@ -242,9 +258,10 @@ def list_to_dict(alist):
     return params
 
 
-def yaml_to_dict(arry):
+def yaml_to_dict(arry, add_newlines=True):
     arry = convert(arry)
-    return yaml.load("\n".join(arry), Loader=SafeLoader)
+    sep = "\n" if add_newlines else ""
+    return yaml.load(sep.join(arry), Loader=SafeLoader)
 
 
 def get_restful_params(urlstring):
@@ -296,8 +313,12 @@ else:
 IMA_PCR = 10
 
 # measured boot addons
-MEASUREDBOOT_PCRS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14]
+MEASUREDBOOT_PCRS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]
 MEASUREDBOOT_ML = '/sys/kernel/security/tpm0/binary_bios_measurements'
+MEASUREDBOOT_IMPORTS = get_config().get('cloud_verifier', 'measured_boot_imports', fallback='').split(',')
+MEASUREDBOOT_POLICYNAME = get_config().get('cloud_verifier', 'measured_boot_policy_name', fallback='accept-all')
+
+LIBEFIVAR="libefivar.so" # formerly "/usr/lib/x86_64-linux-gnu/libefivar.so"
 
 # this is where data will be bound to a quote, MUST BE RESETABLE!
 TPM_DATA_PCR = 16

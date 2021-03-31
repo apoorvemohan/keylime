@@ -23,10 +23,10 @@ except ImportError:
 
 from keylime import config
 from keylime import keylime_logging
-from keylime.tpm import tpm_obj
+from keylime.tpm.tpm_main import tpm
 
 # get the tpm object
-tpm = tpm_obj.getTPM(need_hw_tpm=True)
+tpm_instance = tpm(need_hw_tpm=True)
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -449,7 +449,7 @@ def tpmconv(inmod):
         os.close(infd)
 
         command = ('tpmconv', '-ik', 'inFile.name', '-ok', tmppath)
-        tpm.run(command)
+        tpm_instance.run(command)
 
         # read in the pem
         f = open(tmppath, "rb")

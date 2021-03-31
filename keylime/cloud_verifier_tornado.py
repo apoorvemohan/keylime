@@ -30,7 +30,7 @@ logger = keylime_logging.init_logging('cloudverifier')
 try:
     engine = DBEngineManager().make_engine('cloud_verifier')
 except SQLAlchemyError as e:
-    logger.error(f'Error creating SQL engine or session: {e}')
+    logger.error('Error creating SQL engine or session: %s', e)
     sys.exit(1)
 
 
@@ -52,15 +52,25 @@ exclude_db = {
 
 
 def _from_db_obj(agent_db_obj):
-    fields = ['agent_id', 'v', 'ip', 'port',
-              'operational_state', 'public_key',
-              'tpm_policy', 'vtpm_policy', 'meta_data',
-              'allowlist', 'ima_sign_verification_keys', 'revocation_key',
-              'tpm_version',
-              'accept_tpm_hash_algs',
-              'accept_tpm_encryption_algs',
-              'accept_tpm_signing_algs',
-              'hash_alg', 'enc_alg', 'sign_alg']
+    fields = [ 'agent_id', \
+                'v', \
+                'ip', \
+                'port', \
+                'operational_state', \
+                'public_key', \
+                'tpm_policy', \
+                'vtpm_policy', \
+                'meta_data', \
+                'mb_refstate', \
+                'allowlist', \
+                'ima_sign_verification_keys', \
+                'revocation_key', \
+                'accept_tpm_hash_algs', \
+                'accept_tpm_encryption_algs', \
+                'accept_tpm_signing_algs', \
+                'hash_alg', \
+                'enc_alg', \
+                'sign_alg']
     agent_dict = {}
     for field in fields:
         agent_dict[field] = getattr(agent_db_obj, field, None)
@@ -145,8 +155,7 @@ class AgentsHandler(BaseHandler):
 
         if "agents" not in rest_params:
             config.echo_json_response(self, 400, "uri not supported")
-            logger.warning(
-                'GET returning 400 response. uri not supported: ' + self.request.path)
+            logger.warning('GET returning 400 response. uri not supported: %s', self.request.path)
             return
 
         agent_id = rest_params["agents"]
@@ -156,7 +165,7 @@ class AgentsHandler(BaseHandler):
                 agent = session.query(VerfierMain).filter_by(
                     agent_id=agent_id).one_or_none()
             except SQLAlchemyError as e:
-                logger.error(f'SQLAlchemy Error: {e}')
+                logger.error('SQLAlchemy Error: %s', e)
 
             if agent is not None:
                 response = cloud_verifier_common.process_get_status(agent)
@@ -190,19 +199,18 @@ class AgentsHandler(BaseHandler):
 
         if agent_id is None:
             config.echo_json_response(self, 400, "uri not supported")
-            logger.warning(
-                'DELETE returning 400 response. uri not supported: ' + self.request.path)
+            logger.warning('DELETE returning 400 response. uri not supported: %s', self.request.path)
             return
 
         try:
             agent = session.query(VerfierMain).filter_by(
                 agent_id=agent_id).first()
         except SQLAlchemyError as e:
-            logger.error(f'SQLAlchemy Error: {e}')
+            logger.error('SQLAlchemy Error: %s', e)
 
         if agent is None:
             config.echo_json_response(self, 404, "agent id not found")
-            logger.info('DELETE returning 404 response. agent id: ' + agent_id + ' not found.')
+            logger.info('DELETE returning 404 response. agent id: %s not found.', agent_id)
             return
 
         verifier_id = config.get('cloud_verifier', 'cloudverifier_id')
@@ -220,10 +228,9 @@ class AgentsHandler(BaseHandler):
                     agent_id=agent_id).delete()
                 session.commit()
             except SQLAlchemyError as e:
-                logger.error(f'SQLAlchemy Error: {e}')
+                logger.error('SQLAlchemy Error: %s', e)
             config.echo_json_response(self, 200, "Success")
-            logger.info(
-                'DELETE returning 200 response for agent id: ' + agent_id)
+            logger.info('DELETE returning 200 response for agent id: %s', agent_id)
         else:
             try:
                 update_agent = session.query(VerfierMain).get(agent_id)
@@ -231,13 +238,12 @@ class AgentsHandler(BaseHandler):
                 try:
                     session.add(update_agent)
                 except SQLAlchemyError as e:
-                    logger.error(f'SQLAlchemy Error: {e}')
+                    logger.error('SQLAlchemy Error: %s', e)
                 session.commit()
                 config.echo_json_response(self, 202, "Accepted")
-                logger.info(
-                    'DELETE returning 202 response for agent id: ' + agent_id)
+                logger.info('DELETE returning 202 response for agent id: %s', agent_id)
             except SQLAlchemyError as e:
-                logger.error(f'SQLAlchemy Error: {e}')
+                logger.error('SQLAlchemy Error: %s', e)
 
     def post(self):
         """This method handles the POST requests to add agents to the Cloud Verifier.
@@ -255,8 +261,7 @@ class AgentsHandler(BaseHandler):
 
             if "agents" not in rest_params:
                 config.echo_json_response(self, 400, "uri not supported")
-                logger.warning(
-                    'POST returning 400 response. uri not supported: ' + self.request.path)
+                logger.warning('POST returning 400 response. uri not supported: %s', self.request.path)
                 return
 
             agent_id = rest_params["agents"]
@@ -266,8 +271,7 @@ class AgentsHandler(BaseHandler):
                 if content_length == 0:
                     config.echo_json_response(
                         self, 400, "Expected non zero content length")
-                    logger.warning(
-                        'POST returning 400 response. Expected non zero content length.')
+                    logger.warning('POST returning 400 response. Expected non zero content length.')
                 else:
                     json_body = json.loads(self.request.body)
                     agent_data = {}
@@ -280,9 +284,9 @@ class AgentsHandler(BaseHandler):
                     agent_data['vtpm_policy'] = json_body['vtpm_policy']
                     agent_data['meta_data'] = json_body['metadata']
                     agent_data['allowlist'] = json_body['allowlist']
+                    agent_data['mb_refstate'] = json_body['mb_refstate']
                     agent_data['ima_sign_verification_keys'] = json_body['ima_sign_verification_keys']
                     agent_data['revocation_key'] = json_body['revocation_key']
-                    agent_data['tpm_version'] = 0
                     agent_data['accept_tpm_hash_algs'] = json_body['accept_tpm_hash_algs']
                     agent_data['accept_tpm_encryption_algs'] = json_body['accept_tpm_encryption_algs']
                     agent_data['accept_tpm_signing_algs'] = json_body['accept_tpm_signing_algs']
@@ -302,38 +306,34 @@ class AgentsHandler(BaseHandler):
                         new_agent_count = session.query(
                             VerfierMain).filter_by(agent_id=agent_id).count()
                     except SQLAlchemyError as e:
-                        logger.error(f'SQLAlchemy Error: {e}')
+                        logger.error('SQLAlchemy Error: %s', e)
 
                     # don't allow overwriting
 
                     if new_agent_count > 0:
                         config.echo_json_response(
                             self, 409, "Agent of uuid %s already exists" % (agent_id))
-                        logger.warning(
-                            "Agent of uuid %s already exists" % (agent_id))
+                        logger.warning("Agent of uuid %s already exists", agent_id)
                     else:
                         try:
                             # Add the agent and data
                             session.add(VerfierMain(**agent_data))
                             session.commit()
                         except SQLAlchemyError as e:
-                            logger.error(f'SQLAlchemy Error: {e}')
+                            logger.error('SQLAlchemy Error: %s', e)
 
                         for key in list(exclude_db.keys()):
                             agent_data[key] = exclude_db[key]
                         asyncio.ensure_future(
                             process_agent(agent_data, states.GET_QUOTE))
                         config.echo_json_response(self, 200, "Success")
-                        logger.info(
-                            'POST returning 200 response for adding agent id: ' + agent_id)
+                        logger.info('POST returning 200 response for adding agent id: %s', agent_id)
             else:
                 config.echo_json_response(self, 400, "uri not supported")
-                logger.warning(
-                    "POST returning 400 response. uri not supported")
+                logger.warning("POST returning 400 response. uri not supported")
         except Exception as e:
             config.echo_json_response(self, 400, "Exception error: %s" % e)
-            logger.warning(
-                "POST returning 400 response. Exception error: %s" % e)
+            logger.warning("POST returning 400 response. Exception error: %s", e)
             logger.exception(e)
 
         self.finish()
@@ -354,8 +354,7 @@ class AgentsHandler(BaseHandler):
 
             if "agents" not in rest_params:
                 config.echo_json_response(self, 400, "uri not supported")
-                logger.warning(
-                    'PUT returning 400 response. uri not supported: ' + self.request.path)
+                logger.warning('PUT returning 400 response. uri not supported: %s', self.request.path)
                 return
 
             agent_id = rest_params["agents"]
@@ -368,12 +367,11 @@ class AgentsHandler(BaseHandler):
                 agent = session.query(VerfierMain).filter_by(
                     agent_id=agent_id, verifier_id=verifier_id).one()
             except SQLAlchemyError as e:
-                logger.error(f'SQLAlchemy Error: {e}')
+                logger.error('SQLAlchemy Error: %s', e)
 
             if agent is None:
                 config.echo_json_response(self, 404, "agent id not found")
-                logger.info(
-                    'PUT returning 404 response. agent id: ' + agent_id + ' not found.')
+                logger.info('PUT returning 404 response. agent id: %s not found.', agent_id)
                 return
 
             if "reactivate" in rest_params:
@@ -381,29 +379,26 @@ class AgentsHandler(BaseHandler):
                 asyncio.ensure_future(
                     process_agent(agent, states.GET_QUOTE))
                 config.echo_json_response(self, 200, "Success")
-                logger.info(
-                    'PUT returning 200 response for agent id: ' + agent_id)
+                logger.info('PUT returning 200 response for agent id: %s', agent_id)
             elif "stop" in rest_params:
                 # do stuff for terminate
-                logger.debug("Stopping polling on %s" % agent_id)
+                logger.debug("Stopping polling on %s", agent_id)
                 try:
                     session.query(VerfierMain).filter(VerfierMain.agent_id == agent_id).update(
                         {'operational_state': states.TENANT_FAILED})
                     session.commit()
                 except SQLAlchemyError as e:
-                    logger.error(f'SQLAlchemy Error: {e}')
+                    logger.error('SQLAlchemy Error: %s', e)
 
                 config.echo_json_response(self, 200, "Success")
-                logger.info(
-                    'PUT returning 200 response for agent id: ' + agent_id)
+                logger.info('PUT returning 200 response for agent id: %s', agent_id)
             else:
                 config.echo_json_response(self, 400, "uri not supported")
                 logger.warning("PUT returning 400 response. uri not supported")
 
         except Exception as e:
             config.echo_json_response(self, 400, "Exception error: %s" % e)
-            logger.warning(
-                "PUT returning 400 response. Exception error: %s" % e)
+            logger.warning("PUT returning 400 response. Exception error: %s", e)
             logger.exception(e)
         self.finish()
 
@@ -432,9 +427,7 @@ async def invoke_get_quote(agent, need_pubkey):
                 agent, states.GET_QUOTE_RETRY))
         else:
             # catastrophic error, do not continue
-            error = "Unexpected Get Quote response error for cloud agent " + \
-                agent['agent_id'] + ", Error: " + str(response.status_code)
-            logger.critical(error)
+            logger.critical("Unexpected Get Quote response error for cloud agent %s, Error: %s", agent['agent_id'], response.status_code)
             asyncio.ensure_future(process_agent(agent, states.FAILED))
     else:
         try:
@@ -474,9 +467,7 @@ async def invoke_provide_v(agent):
                 process_agent(agent, states.PROVIDE_V_RETRY))
         else:
             # catastrophic error, do not continue
-            error = "Unexpected Provide V response error for cloud agent " + \
-                agent['agent_id'] + ", Error: " + str(response.error)
-            logger.critical(error)
+            logger.critical("Unexpected Provide V response error for cloud agent %s, Error: %s", agent['agent_id'], response.error)
             asyncio.ensure_future(process_agent(agent, states.FAILED))
     else:
         asyncio.ensure_future(process_agent(agent, states.GET_QUOTE))
@@ -494,12 +485,11 @@ async def process_agent(agent, new_operational_state):
             stored_agent = session.query(VerfierMain).filter_by(
                 agent_id=str(agent['agent_id'])).first()
         except SQLAlchemyError as e:
-            logger.error(f'SQLAlchemy Error: {e}')
+            logger.error('SQLAlchemy Error: %s', e)
 
         # if the user did terminated this agent
         if stored_agent.operational_state == states.TERMINATED:
-            logger.warning("agent %s terminated by user." %
-                           agent['agent_id'])
+            logger.warning("Agent %s terminated by user.", agent['agent_id'])
             if agent['pending_event'] is not None:
                 tornado.ioloop.IOLoop.current().remove_timeout(
                     agent['pending_event'])
@@ -510,8 +500,7 @@ async def process_agent(agent, new_operational_state):
 
         # if the user tells us to stop polling because the tenant quote check failed
         if stored_agent.operational_state == states.TENANT_FAILED:
-            logger.warning(
-                "agent %s has failed tenant quote.  stopping polling" % agent['agent_id'])
+            logger.warning("Agent %s has failed tenant quote. Stopping polling",  agent['agent_id'])
             if agent['pending_event'] is not None:
                 tornado.ioloop.IOLoop.current().remove_timeout(
                     agent['pending_event'])
@@ -536,8 +525,7 @@ async def process_agent(agent, new_operational_state):
                 agent_id=agent['agent_id']).update(agent)
             session.commit()
 
-            logger.warning("agent %s failed, stopping polling" %
-                           agent['agent_id'])
+            logger.warning("Agent %s failed, stopping polling", agent['agent_id'])
             return
 
         # propagate all state, but remove none DB keys first (using exclude_db)
@@ -551,7 +539,7 @@ async def process_agent(agent, new_operational_state):
                 agent_id=agent_db['agent_id']).update(agent_db)
             session.commit()
         except SQLAlchemyError as e:
-            logger.error(f'SQLAlchemy Error: {e}')
+            logger.error('SQLAlchemy Error: %s', e)
 
         # if new, get a quote
         if (main_agent_operational_state == states.START and
@@ -576,8 +564,7 @@ async def process_agent(agent, new_operational_state):
             if interval == 0:
                 await invoke_get_quote(agent, False)
             else:
-                logger.debug(
-                    "Setting up callback to check again in %f seconds" % interval)
+                logger.debug("Setting up callback to check again in %f seconds", interval)
                 # set up a call back to check again
                 cb = functools.partial(invoke_get_quote, agent, False)
                 pending = tornado.ioloop.IOLoop.current().call_later(interval, cb)
@@ -589,29 +576,25 @@ async def process_agent(agent, new_operational_state):
         if (main_agent_operational_state == states.GET_QUOTE and
                 new_operational_state == states.GET_QUOTE_RETRY):
             if agent['num_retries'] >= maxr:
-                logger.warning("agent %s was not reachable for quote in %d tries, setting state to FAILED" % (
-                    agent['agent_id'], maxr))
+                logger.warning("Agent %s was not reachable for quote in %d tries, setting state to FAILED", agent['agent_id'], maxr)
                 if agent['first_verified']:  # only notify on previously good agents
                     cloud_verifier_common.notify_error(
                         agent, msgtype='comm_error')
                 else:
-                    logger.debug(
-                        "Communication error for new agent.  no notification will be sent")
+                    logger.debug("Communication error for new agent. No notification will be sent")
                 await process_agent(agent, states.FAILED)
             else:
                 agent['operational_state'] = states.GET_QUOTE
                 cb = functools.partial(invoke_get_quote, agent, True)
                 agent['num_retries'] += 1
-                logger.info("connection to %s refused after %d/%d tries, trying again in %f seconds" %
-                            (agent['ip'], agent['num_retries'], maxr, retry))
+                logger.info("Connection to %s refused after %d/%d tries, trying again in %f seconds", agent['ip'], agent['num_retries'], maxr, retry)
                 tornado.ioloop.IOLoop.current().call_later(retry, cb)
             return
 
         if (main_agent_operational_state == states.PROVIDE_V and
                 new_operational_state == states.PROVIDE_V_RETRY):
             if agent['num_retries'] >= maxr:
-                logger.warning("agent %s was not reachable to provide v in %d tries, setting state to FAILED" % (
-                    agent['agent_id'], maxr))
+                logger.warning("Agent %s was not reachable to provide v in %d tries, setting state to FAILED", agent['agent_id'], maxr)
                 cloud_verifier_common.notify_error(
                     agent, msgtype='comm_error')
                 await process_agent(agent, states.FAILED)
@@ -619,14 +602,13 @@ async def process_agent(agent, new_operational_state):
                 agent['operational_state'] = states.PROVIDE_V
                 cb = functools.partial(invoke_provide_v, agent)
                 agent['num_retries'] += 1
-                logger.info("connection to %s refused after %d/%d tries, trying again in %f seconds" %
-                            (agent['ip'], agent['num_retries'], maxr, retry))
+                logger.info("Connection to %s refused after %d/%d tries, trying again in %f seconds", agent['ip'], agent['num_retries'], maxr, retry)
                 tornado.ioloop.IOLoop.current().call_later(retry, cb)
             return
         raise Exception("nothing should ever fall out of this!")
 
     except Exception as e:
-        logger.error("Polling thread error: %s" % e)
+        logger.error("Polling thread error: %s", e)
         logger.exception(e)
 
 
@@ -639,7 +621,7 @@ async def activate_agents(verifier_id):
             if agent.operational_state == states.START:
                 asyncio.ensure_future(process_agent(agent, states.GET_QUOTE))
     except SQLAlchemyError as e:
-        logger.error(f'SQLAlchemy Error: {e}')
+        logger.error('SQLAlchemy Error: %s', e)
 
 
 def main():
@@ -664,15 +646,14 @@ def main():
                 row.operational_state = states.START
         session.commit()
     except SQLAlchemyError as e:
-        logger.error(f'SQLAlchemy Error: {e}')
+        logger.error('SQLAlchemy Error: %s', e)
 
     num = session.query(VerfierMain.agent_id).count()
     if num > 0:
         agent_ids = session.query(VerfierMain.agent_id).all()
-        logger.info("agent ids in db loaded from file: %s" % agent_ids)
+        logger.info("Agent ids in db loaded from file: %s", agent_ids)
 
-    logger.info('Starting Cloud Verifier (tornado) on port ' +
-                cloudverifier_port + ', use <Ctrl-C> to stop')
+    logger.info('Starting Cloud Verifier (tornado) on port %s, use <Ctrl-C> to stop', cloudverifier_port)
 
     app = tornado.web.Application([
         (r"/(?:v[0-9]/)?agents/.*", AgentsHandler),
@@ -683,8 +664,7 @@ def main():
 
     # after TLS is up, start revocation notifier
     if config.getboolean('cloud_verifier', 'revocation_notifier'):
-        logger.info("Starting service for revocation notifications on port %s" %
-                    config.getint('cloud_verifier', 'revocation_notifier_port'))
+        logger.info("Starting service for revocation notifications on port %s", config.getint('cloud_verifier', 'revocation_notifier_port'))
         revocation_notifier.start_broker()
 
     sockets = tornado.netutil.bind_sockets(
