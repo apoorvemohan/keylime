@@ -205,6 +205,13 @@ class AgentsHandler(BaseHandler):
             logger.info('DELETE returning 404 response. agent id: ' + agent_id + ' not found.')
             return
 
+        verifier_id = config.get('cloud_verifier', 'cloudverifier_id')
+        if verifier_id != agent.verifier_id:
+            logger.warning(
+                'Agent %s not associated to this verifier %s' % (agent.agent_id, verifier_id))
+            return
+
+
         op_state = agent.operational_state
         if op_state in (states.SAVED, states.FAILED, states.TERMINATED,
                         states.TENANT_FAILED, states.INVALID_QUOTE):
