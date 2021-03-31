@@ -293,6 +293,7 @@ def process_get_status(agent):
                 'hash_alg': agent.hash_alg,
                 'enc_alg': agent.enc_alg,
                 'sign_alg': agent.sign_alg,
+                'verifier_id' : agent.verifier_id,
                 }
     return response
 
