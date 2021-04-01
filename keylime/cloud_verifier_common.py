@@ -292,6 +292,8 @@ def process_get_status(agent):
                 'enc_alg': agent.enc_alg,
                 'sign_alg': agent.sign_alg,
                 'verifier_id' : agent.verifier_id,
+                'verifier_ip' : agent.verifier_ip,
+                'verifier_port' : agent.verifier_port,
                 }
     return response
 

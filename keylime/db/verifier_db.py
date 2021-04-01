@@ -24,7 +24,10 @@ class VerfierMain(Base):
                       primary_key=True)
     v = Column(String(45))
     ip = Column(String(15))
+    verifier_ip = Column(String(15),
+                      primary_key=True)
     port = Column(Integer)
+    verifier_port = Column(Integer)
     operational_state = Column(Integer)
     public_key = Column(String(500))
     tpm_policy = Column(String(1000))

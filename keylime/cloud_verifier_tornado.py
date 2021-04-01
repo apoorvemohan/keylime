@@ -295,6 +295,8 @@ class AgentsHandler(BaseHandler):
                     agent_data['sign_alg'] = ""
                     agent_data['agent_id'] = agent_id
                     agent_data['verifier_id'] = config.get('cloud_verifier', 'cloudverifier_id')
+                    agent_data['verifier_ip'] = config.get('cloud_verifier', 'cloudverifier_ip')
+                    agent_data['verifier_port'] = config.get('cloud_verifier', 'cloudverifier_port')
 
                     is_valid, err_msg = cloud_verifier_common.validate_agent_data(agent_data)
                     if not is_valid:
@@ -612,14 +614,17 @@ async def process_agent(agent, new_operational_state):
         logger.exception(e)
 
 
-async def activate_agents(verifier_id):
+async def activate_agents(verifier_id, verifier_ip, verifier_port):
     session = get_session()
     try:
         agents = session.query(VerfierMain).filter_by(
             verifier_id=verifier_id).all()
         for agent in agents:
+            agent.verifier_ip = verifier_ip
+            agent.verifier_host = verifier_port
             if agent.operational_state == states.START:
                 asyncio.ensure_future(process_agent(agent, states.GET_QUOTE))
+        session.commit()
     except SQLAlchemyError as e:
         logger.error('SQLAlchemy Error: %s', e)
 
@@ -674,7 +679,7 @@ def main():
     asyncio.set_event_loop(asyncio.new_event_loop())
     # Auto reactivate agent
     if task_id == 0:
-        asyncio.ensure_future(activate_agents(cloudverifier_id))
+        asyncio.ensure_future(activate_agents(cloudverifier_id, cloudverifier_host, cloudverifier_port))
 
     server = tornado.httpserver.HTTPServer(app, ssl_options=context, max_buffer_size=max_upload_size)
     server.add_sockets(sockets)
