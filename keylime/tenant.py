@@ -574,7 +574,7 @@ class Tenant():
             logger.error("POST command response: %s Unexpected response from Cloud Verifier: %s", response.status_code, response.text)
             sys.exit()
 
-    def do_cvstatus(self, listing=False):
+    def do_cvstatus(self, listing=False, returnresponse=False):
         """ Perform opertional state look up for agent
 
         Keyword Arguments:
@@ -607,16 +607,25 @@ class Tenant():
             sys.exit()
         else:
             response_json = response.json()
-            if not listing:
-                operational_state = response_json["results"]["operational_state"]
-                logger.info('Agent Status: "%s"', states.state_to_str(operational_state))
+            if not returnresponse:
+                if not listing:
+                    operational_state = response_json["results"]["operational_state"]
+                    logger.info('Agent Status: "%s"', states.state_to_str(operational_state))
+                else:
+                    agent_array = response_json["results"]["uuids"]
+                    logger.info('Agents: "%s"', agent_array)
             else:
-                agent_array = response_json["results"]["uuids"]
-                logger.info('Agents: "%s"', agent_array)
+              return response_json
 
-    def do_cvdelete(self):
+    def do_cvdelete(self, smartdelete=False):
         """Delete agent from Verifier
         """
+        if smartdelete:
+            agent_json = self.do_cvstatus(listing=False, returnresponse=True)
+            if agent_json.ip != self.cloudverifier_ip
+                self.cloudverifier_ip = agent_json.verifier_ip
+                self.cloudverifier_port = agent_json.verifier_port
+
         do_cvdelete = RequestsClient(self.verifier_base_url, self.tls_enabled)
         response = do_cvdelete.delete(
             (f'/agents/{self.agent_uuid}'),
@@ -673,9 +682,15 @@ class Tenant():
         registrar_client.doRegistrarDelete(
             self.registrar_ip, self.registrar_port, self.agent_uuid)
 
-    def do_cvreactivate(self):
+    def do_cvreactivate(self, smartreactivate=True):
         """ Reactive Agent
         """
+        if smartreactivate:
+            agent_json = self.do_cvstatus(listing=False, returnresponse=True)
+            if agent_json.ip != self.cloudverifier_ip
+                self.cloudverifier_ip = agent_json.verifier_ip
+                self.cloudverifier_port = agent_json.verifier_port
+
         do_cvreactivate = RequestsClient(
             self.verifier_base_url, self.tls_enabled)
         response = do_cvreactivate.put(
@@ -1058,12 +1073,16 @@ def main(argv=sys.argv):
             mytenant.do_verify()
     elif args.command == 'delete':
         mytenant.do_cvdelete()
+    elif args.command == 'smartdelete':
+        mytenant.do_cvdelete(smartdelete=True)
     elif args.command == 'status':
         mytenant.do_cvstatus()
     elif args.command == 'list':
         mytenant.do_cvstatus(listing=True)
     elif args.command == 'reactivate':
         mytenant.do_cvreactivate()
+    elif args.command == 'smartreactivate':
+        mytenant.do_cvreactivate(smartreactivate=True)
     elif args.command == 'reglist':
         mytenant.do_reglist()
     elif args.command == 'regdelete':
