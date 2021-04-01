@@ -173,7 +173,14 @@ class AgentsHandler(BaseHandler):
             else:
                 config.echo_json_response(self, 404, "agent id not found")
         else:
-            json_response = session.query(VerfierMain.agent_id).all()
+            json_response = None
+
+            if "verifier" in rest_params.keys():
+                json_response = session.query(VerfierMain.agent_id).filter_by(
+                    verifier_id=rest_params["verifier"]).all()
+            else
+                json_response = session.query(VerfierMain.agent_id).all()
+
             config.echo_json_response(self, 200, "Success", {
                 'uuids': json_response})
             logger.info('GET returning 200 response for agent_id list')

@@ -51,6 +51,7 @@ class Tenant():
 
     config = None
 
+    cloudverifier_id = None
     cloudverifier_ip = None
     cloudverifier_port = None
 
@@ -93,6 +94,7 @@ class Tenant():
         self.nonce = None
         self.agent_ip = None
         self.agent_port = config.get('cloud_agent', 'cloudagent_port')
+        self.verifier_id = config.get('tenant', 'cloudverifier_id')
         self.verifier_ip = config.get('tenant', 'cloudverifier_ip')
         self.verifier_port = config.get('tenant', 'cloudverifier_port')
         self.registrar_ip = config.get('tenant', 'registrar_ip')
@@ -584,12 +586,21 @@ class Tenant():
         if not listing:
             agent_uuid = self.agent_uuid
 
+        response = None
         do_cvstatus = RequestsClient(self.verifier_base_url, self.tls_enabled)
-        response = do_cvstatus.get(
-            (f'/agents/{agent_uuid}'),
-            cert=self.cert,
-            verify=False
-        )
+        if listing and (self.cloudverifier_id != None):
+            verifier_id = self.cloudverifier_id
+            response = do_cvstatus.get(
+                (f'/agents/?verifier={verifier_id}'),
+                cert=self.cert,
+                verify=False
+            )
+        else:
+            response = do_cvstatus.get(
+                (f'/agents/{agent_uuid}'),
+                cert=self.cert,
+                verify=False
+            )
 
         if response.status_code == 503:
             logger.error("Cannot connect to Verifier at %s with Port %s. Connection refused.", self.verifier_ip, self.verifier_port)
@@ -942,6 +953,12 @@ def main(argv=sys.argv):
                         help='the IP address of the host to provision that the verifier will use (optional).  Use only if different than argument to option -t/--targethost')
     parser.add_argument('-v', '--cv', action='store', dest='verifier_ip',
                         help="the IP address of the cloud verifier")
+    parser.add_argument('-v', '--cv', action='store', dest='verifier_ip',
+                        help="the IP address of the cloud verifier")
+    parser.add_argument('-vp', '--cvport', action='store', dest='verifier_port',
+                        help="the port of the cloud verifier")
+    parser.add_argument('-vi', '--cvid', action='store', dest='verifier_id',
+                        help="the unique identifier of a cloud verifier")
     parser.add_argument('-u', '--uuid', action='store',
                         dest='agent_uuid', help="UUID for the agent to provision")
     parser.add_argument('-f', '--file', action='store', default=None,
@@ -1025,8 +1042,12 @@ def main(argv=sys.argv):
             raise UserError("Command %s not found in canned JSON!" %
                             ("add_vtpm_to_group"))
 
+    if args.verifier_id is not None:
+        mytenant.verifier_id = args.verifier_id
     if args.verifier_ip is not None:
         mytenant.verifier_ip = args.verifier_ip
+    if args.verifier_port is not None:
+        mytenant.verifier_port = args.verifier_port
 
     # we only need to fetch remote files if we are adding or updateing
     if args.command in ['add', 'update']:
