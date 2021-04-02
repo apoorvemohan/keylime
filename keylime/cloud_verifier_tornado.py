@@ -178,7 +178,7 @@ class AgentsHandler(BaseHandler):
             if "verifier" in rest_params.keys():
                 json_response = session.query(VerfierMain.agent_id).filter_by(
                     verifier_id=rest_params["verifier"]).all()
-            else
+            else:
                 json_response = session.query(VerfierMain.agent_id).all()
 
             config.echo_json_response(self, 200, "Success", {

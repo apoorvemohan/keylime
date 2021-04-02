@@ -633,7 +633,7 @@ class Tenant():
         """
         if smartdelete:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.cloudverifier_ip
+            if agent_json.ip != self.cloudverifier_ip:
                 self.cloudverifier_ip = agent_json.verifier_ip
                 self.cloudverifier_port = agent_json.verifier_port
 
@@ -698,7 +698,7 @@ class Tenant():
         """
         if smartreactivate:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.cloudverifier_ip
+            if agent_json.ip != self.cloudverifier_ip:
                 self.cloudverifier_ip = agent_json.verifier_ip
                 self.cloudverifier_port = agent_json.verifier_port
 
