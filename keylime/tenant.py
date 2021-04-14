@@ -930,6 +930,36 @@ class Tenant():
                 continue
             break
 
+    def do_add_allowlist(self, args):
+        if 'allowlist_name' not in args or not args['allowlist_name']:
+            raise UserError('allowlist_name is required to add an allowlist')
+
+        allowlist_name = args['allowlist_name']
+        self.process_allowlist(args)
+        data = {
+            'tpm_policy': json.dumps(self.tpm_policy),
+            'vtpm_policy': json.dumps(self.vtpm_policy),
+            'allowlist': json.dumps(self.allowlist)
+        }
+        body = json.dumps(data)
+        cv_client = RequestsClient(self.verifier_base_url, self.tls_enabled)
+        response = cv_client.post(f'/allowlists/{allowlist_name}', data=body,
+                                  cert=self.cert, verify=False)
+        print(response.json())
+
+    def do_delete_allowlist(self, name):
+        cv_client = RequestsClient(self.verifier_base_url, self.tls_enabled)
+        response = cv_client.delete(f'/allowlists/{name}',
+                                    cert=self.cert, verify=False)
+        print(response.json())
+
+    def do_show_allowlist(self, name):
+        cv_client = RequestsClient(self.verifier_base_url, self.tls_enabled)
+        response = cv_client.get(f'/allowlists/{name}',
+                                 cert=self.cert, verify=False)
+        print(f"Show allowlist command response: {response.status_code}.")
+        print(response.json())
+
 
 def main(argv=sys.argv):
     """[summary]
@@ -1018,7 +1048,9 @@ def main(argv=sys.argv):
 
     mytenant = Tenant()
 
-    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'status'] and args.agent_ip is None:
+    if args.command not in ['list', 'regdelete', 'delete', 'status',
+                            'addallowlist', 'deleteallowlist',
+                            'showallowlist'] and args.agent_ip is None:
         raise UserError(
             f"-t/--targethost is required for command {args.command}")
 
@@ -1108,5 +1140,11 @@ def main(argv=sys.argv):
         mytenant.do_reglist()
     elif args.command == 'regdelete':
         mytenant.do_regdelete()
+    elif args.command == 'addallowlist':
+        mytenant.do_add_allowlist(vars(args))
+    elif args.command == 'showallowlist':
+        mytenant.do_show_allowlist(args.allowlist_name)
+    elif args.command == 'deleteallowlist':
+        mytenant.do_delete_allowlist(args.allowlist_name)
     else:
         raise UserError("Invalid command specified: %s" % (args.command))
