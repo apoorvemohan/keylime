@@ -61,7 +61,7 @@ class DBEngineManager:
                 host=config.get(service, 'host'),
                 database=config.get(service, 'database')
             )
-            engine = create_engine(url)
+            engine = create_engine(url, pool_size=40, max_overflow=80)
 
         return engine
 
