@@ -986,8 +986,6 @@ def main(argv=sys.argv):
                         help='the IP address of the host to provision that the verifier will use (optional).  Use only if different than argument to option -t/--targethost')
     parser.add_argument('-v', '--cv', action='store', dest='verifier_ip',
                         help="the IP address of the cloud verifier")
-    parser.add_argument('-v', '--cv', action='store', dest='verifier_ip',
-                        help="the IP address of the cloud verifier")
     parser.add_argument('-vp', '--cvport', action='store', dest='verifier_port',
                         help="the port of the cloud verifier")
     parser.add_argument('-vi', '--cvid', action='store', dest='verifier_id',
