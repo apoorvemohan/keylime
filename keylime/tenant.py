@@ -50,10 +50,6 @@ class Tenant():
 
     config = None
 
-    cloudverifier_id = None
-    cloudverifier_ip = None
-    cloudverifier_port = None
-
     cloudagent_ip = None
     cv_cloudagent_ip = None
     cloudagent_port = None
@@ -93,7 +89,6 @@ class Tenant():
         self.nonce = None
         self.agent_ip = None
         self.agent_port = config.get('cloud_agent', 'cloudagent_port')
-        self.verifier_id = config.get('tenant', 'cloudverifier_id')
         self.verifier_ip = config.get('tenant', 'cloudverifier_ip')
         self.verifier_port = config.get('tenant', 'cloudverifier_port')
         self.registrar_ip = config.get('tenant', 'registrar_ip')
@@ -591,8 +586,8 @@ class Tenant():
 
         response = None
         do_cvstatus = RequestsClient(self.verifier_base_url, self.tls_enabled)
-        if listing and (self.cloudverifier_id != None):
-            verifier_id = self.cloudverifier_id
+        if listing and (self.verifier_id != None):
+            verifier_id = self.verifier_id
             response = do_cvstatus.get(
                 (f'/agents/?verifier={verifier_id}'),
                 cert=self.cert,
@@ -636,9 +631,9 @@ class Tenant():
         """
         if smartdelete:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.cloudverifier_ip:
-                self.cloudverifier_ip = agent_json.verifier_ip
-                self.cloudverifier_port = agent_json.verifier_port
+            if agent_json.ip != self.verifier_ip:
+                self.verifier_ip = agent_json.verifier_ip
+                self.verifier_port = agent_json.verifier_port
 
         do_cvdelete = RequestsClient(self.verifier_base_url, self.tls_enabled)
         response = do_cvdelete.delete(
@@ -701,9 +696,9 @@ class Tenant():
         """
         if smartreactivate:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.cloudverifier_ip:
-                self.cloudverifier_ip = agent_json.verifier_ip
-                self.cloudverifier_port = agent_json.verifier_port
+            if agent_json.ip != self.verifier_ip:
+                self.verifier_ip = agent_json.verifier_ip
+                self.verifier_port = agent_json.verifier_port
 
         do_cvreactivate = RequestsClient(
             self.verifier_base_url, self.tls_enabled)

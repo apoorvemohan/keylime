@@ -162,7 +162,7 @@ class AgentsHandler(BaseHandler):
 
         agent_id = rest_params["agents"]
 
-        if agent_id is not None:
+        if (agent_id is not None) and (agent_id != ''):
             try:
                 agent = session.query(VerfierMain).filter_by(
                     agent_id=agent_id).one_or_none()
@@ -176,7 +176,6 @@ class AgentsHandler(BaseHandler):
                 config.echo_json_response(self, 404, "agent id not found")
         else:
             json_response = None
-
             if "verifier" in rest_params.keys():
                 json_response = session.query(VerfierMain.agent_id).filter_by(
                     verifier_id=rest_params["verifier"]).all()
