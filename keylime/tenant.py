@@ -585,6 +585,8 @@ class Tenant():
         if not listing:
             agent_uuid = self.agent_uuid
 
+        print(agent_uuid)
+
         response = None
         do_cvstatus = RequestsClient(self.verifier_base_url, self.tls_enabled)
         if listing and (self.verifier_id != None):
@@ -625,16 +627,15 @@ class Tenant():
                     agent_array = response_json["results"]["uuids"]
                     logger.info('Agents: "%s"', agent_array)
             else:
-              return response_json
+              return response_json["results"]
 
     def do_cvdelete(self, smartdelete=False):
         """Delete agent from Verifier
         """
         if smartdelete:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.verifier_ip:
-                self.verifier_ip = agent_json.verifier_ip
-                self.verifier_port = agent_json.verifier_port
+            self.verifier_ip = agent_json["verifier_ip"]
+            self.verifier_port = agent_json["verifier_port"]
 
         do_cvdelete = RequestsClient(self.verifier_base_url, self.tls_enabled)
         response = do_cvdelete.delete(
@@ -697,9 +698,8 @@ class Tenant():
         """
         if smartreactivate:
             agent_json = self.do_cvstatus(listing=False, returnresponse=True)
-            if agent_json.ip != self.verifier_ip:
-                self.verifier_ip = agent_json.verifier_ip
-                self.verifier_port = agent_json.verifier_port
+            self.verifier_ip = agent_json['verifier_ip']
+            self.verifier_port = agent_json['verifier_port']
 
         do_cvreactivate = RequestsClient(
             self.verifier_base_url, self.tls_enabled)
@@ -973,7 +973,7 @@ def main(argv=sys.argv):
     """
     parser = argparse.ArgumentParser(argv[0])
     parser.add_argument('-c', '--command', action='store', dest='command', default='add',
-                        help="valid commands are add,delete,update,status,list,reactivate,regdelete. defaults to add")
+                        help="valid commands are add,delete,smartdelete,update,status,list,reactivate,smartreactivate,regdelete. defaults to add")
     parser.add_argument('-t', '--targethost', action='store',
                         dest='agent_ip', help="the IP address of the host to provision")
     parser.add_argument('-tp', '--targetport', action='store',
@@ -1045,8 +1045,8 @@ def main(argv=sys.argv):
 
     mytenant = Tenant()
 
-    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'status',
-                            'addallowlist', 'deleteallowlist',
+    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'smartdelete', 'status',
+                            'addallowlist', 'deleteallowlist', 'reactivate', 'smartreactivate',
                             'showallowlist'] and args.agent_ip is None:
         raise UserError(
             f"-t/--targethost is required for command {args.command}")
