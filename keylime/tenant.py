@@ -88,6 +88,7 @@ class Tenant():
         """
         self.nonce = None
         self.agent_ip = None
+        self.verifier_id = None
         self.agent_port = config.get('cloud_agent', 'cloudagent_port')
         self.verifier_ip = config.get('tenant', 'cloudverifier_ip')
         self.verifier_port = config.get('tenant', 'cloudverifier_port')
