@@ -50,6 +50,9 @@ class Tenant():
 
     config = None
 
+    cloudverifier_ip = None
+    cloudverifier_port = None
+
     cloudagent_ip = None
     cv_cloudagent_ip = None
     cloudagent_port = None
@@ -585,8 +588,6 @@ class Tenant():
         if not listing:
             agent_uuid = self.agent_uuid
 
-        print(agent_uuid)
-
         response = None
         do_cvstatus = RequestsClient(self.verifier_base_url, self.tls_enabled)
         if listing and (self.verifier_id != None):
@@ -1022,6 +1023,7 @@ def main(argv=sys.argv):
                         default=None, help="Specify a vTPM policy in JSON format")
     parser.add_argument('--verify', action='store_true', default=False,
                         help='Block on cryptographically checked key derivation confirmation from the agent once it has been provisioned')
+    parser.add_argument('--allowlist-name', help='The name of allowlist to operate with')
 
     args = parser.parse_args(argv[1:])
 

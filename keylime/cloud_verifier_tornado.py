@@ -227,7 +227,6 @@ class AgentsHandler(BaseHandler):
             logger.info('DELETE returning 404 response. agent id: %s not associated to this verifer.', agent_id)
             return
 
-
         op_state = agent.operational_state
         if op_state in (states.SAVED, states.FAILED, states.TERMINATED,
                         states.TENANT_FAILED, states.INVALID_QUOTE):
