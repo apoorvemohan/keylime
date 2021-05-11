@@ -578,7 +578,7 @@ class Tenant():
             logger.error("POST command response: %s Unexpected response from Cloud Verifier: %s", response.status_code, response.text)
             sys.exit()
 
-    def do_cvstatus(self, listing=False, returnresponse=False):
+    def do_cvstatus(self, listing=False, returnresponse=False, bulk=False):
         """ Perform opertional state look up for agent
 
         Keyword Arguments:
@@ -590,10 +590,17 @@ class Tenant():
 
         response = None
         do_cvstatus = RequestsClient(self.verifier_base_url, self.tls_enabled)
-        if listing and (self.verifier_id != None):
+        if listing and (self.verifier_id is not None):
             verifier_id = self.verifier_id
             response = do_cvstatus.get(
                 (f'/agents/?verifier={verifier_id}'),
+                cert=self.cert,
+                verify=False
+            )
+        elif (not listing) and (bulk):
+            verifier_id = self.verifier_id
+            response = do_cvstatus.get(
+                (f'/agents/?bulk={bulk}&verifier={verifier_id}'),
                 cert=self.cert,
                 verify=False
             )
@@ -622,13 +629,19 @@ class Tenant():
             response_json = response.json()
             if not returnresponse:
                 if not listing:
-                    operational_state = response_json["results"]["operational_state"]
-                    logger.info('Agent Status: "%s"', states.state_to_str(operational_state))
+                    if not bulk:
+                        operational_state = response_json["results"]["operational_state"]
+                        logger.info('Agent Status: "%s"', states.state_to_str(operational_state))
+                    else:
+                        for agent in response_json["results"].keys():
+                            logger.info('Agent %s Status: "%s"' % (agent, states.state_to_str(response_json["results"][agent]["operational_state"])))
                 else:
                     agent_array = response_json["results"]["uuids"]
                     logger.info('Agents: "%s"', agent_array)
             else:
-              return response_json["results"]
+                return response_json["results"]
+
+        return None
 
     def do_cvdelete(self, smartdelete=False):
         """Delete agent from Verifier
@@ -974,7 +987,7 @@ def main(argv=sys.argv):
     """
     parser = argparse.ArgumentParser(argv[0])
     parser.add_argument('-c', '--command', action='store', dest='command', default='add',
-                        help="valid commands are add,delete,smartdelete,update,status,list,reactivate,smartreactivate,regdelete. defaults to add")
+                        help="valid commands are add,delete,smartdelete,update,status,list,reactivate,smartreactivate,regdelete,bulkstatus. defaults to add")
     parser.add_argument('-t', '--targethost', action='store',
                         dest='agent_ip', help="the IP address of the host to provision")
     parser.add_argument('-tp', '--targetport', action='store',
@@ -1047,7 +1060,7 @@ def main(argv=sys.argv):
 
     mytenant = Tenant()
 
-    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'smartdelete', 'status',
+    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'smartdelete', 'status', 'bulkstatus',
                             'addallowlist', 'deleteallowlist', 'reactivate', 'smartreactivate',
                             'showallowlist'] and args.agent_ip is None:
         raise UserError(
@@ -1129,6 +1142,8 @@ def main(argv=sys.argv):
         mytenant.do_cvdelete(smartdelete=True)
     elif args.command == 'status':
         mytenant.do_cvstatus()
+    elif args.command == 'bulkstatus':
+        mytenant.do_cvstatus(bulk=True)
     elif args.command == 'list':
         mytenant.do_cvstatus(listing=True)
     elif args.command == 'reactivate':

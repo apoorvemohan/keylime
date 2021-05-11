@@ -176,7 +176,17 @@ class AgentsHandler(BaseHandler):
                 config.echo_json_response(self, 404, "agent id not found")
         else:
             json_response = None
-            if "verifier" in rest_params.keys():
+            if "bulk" in rest_params.keys():
+                agent_list = session.query(VerfierMain).all()
+
+                if ("verifier" in rest_params.keys()) and (rest_params["verifier"] != ''):
+                    agent_list = agent_list.filter_by(verifier_id=rest_params["verifier"]).all()
+
+                json_response = {}
+                for agent in agent_list:
+                    json_response[agent.agent_id] = cloud_verifier_common.process_get_status(agent)
+
+            if ("verifier" in rest_params.keys()) and (rest_params["verifier"] != ''):
                 json_response = session.query(VerfierMain.agent_id).filter_by(
                     verifier_id=rest_params["verifier"]).all()
             else:
