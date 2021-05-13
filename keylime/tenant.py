@@ -598,7 +598,9 @@ class Tenant():
                 verify=False
             )
         elif (not listing) and (bulk):
-            verifier_id = self.verifier_id
+            verifier_id = ""
+            if self.verifier_id is not None:
+                verifier_id = self.verifier_id
             response = do_cvstatus.get(
                 (f'/agents/?bulk={bulk}&verifier={verifier_id}'),
                 cert=self.cert,
