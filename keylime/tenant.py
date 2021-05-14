@@ -637,7 +637,7 @@ class Tenant():
                     else:
                         for agent in response_json["results"].keys():
                             response_json["results"][agent]["operational_state"] = states.state_to_str(response_json["results"][agent]["operational_state"])
-                            logger.info('Agent %s Info: "%s"' % (agent, str(response_json["results"][agent])))
+                        logger.info("Bulk Agent Info:\n%s" % str(response_json["results"]))
                 else:
                     agent_array = response_json["results"]["uuids"]
                     logger.info('Agents: "%s"', agent_array)
@@ -990,7 +990,7 @@ def main(argv=sys.argv):
     """
     parser = argparse.ArgumentParser(argv[0])
     parser.add_argument('-c', '--command', action='store', dest='command', default='add',
-                        help="valid commands are add,delete,smartdelete,update,status,list,reactivate,smartreactivate,regdelete,bulkstatus. defaults to add")
+                        help="valid commands are add,delete,smartdelete,update,status,list,reactivate,smartreactivate,regdelete,bulkinfo. defaults to add")
     parser.add_argument('-t', '--targethost', action='store',
                         dest='agent_ip', help="the IP address of the host to provision")
     parser.add_argument('-tp', '--targetport', action='store',
@@ -1063,7 +1063,7 @@ def main(argv=sys.argv):
 
     mytenant = Tenant()
 
-    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'smartdelete', 'status', 'bulkstatus',
+    if args.command not in ['list', 'regdelete', 'reglist', 'delete', 'smartdelete', 'status', 'bulkinfo',
                             'addallowlist', 'deleteallowlist', 'reactivate', 'smartreactivate',
                             'showallowlist'] and args.agent_ip is None:
         raise UserError(
@@ -1145,7 +1145,7 @@ def main(argv=sys.argv):
         mytenant.do_cvdelete(smartdelete=True)
     elif args.command == 'status':
         mytenant.do_cvstatus()
-    elif args.command == 'bulkstatus':
+    elif args.command == 'bulkinfo':
         mytenant.do_cvstatus(bulk=True)
     elif args.command == 'list':
         mytenant.do_cvstatus(listing=True)
