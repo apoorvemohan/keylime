@@ -633,7 +633,7 @@ class Tenant():
 
         return None
 
-    def do_cvdelete(self, verifier_check=True):
+    def do_cvdelete(self, verifier_check):
         """Delete agent from Verifier
         """
         if verifier_check:
@@ -697,7 +697,7 @@ class Tenant():
         registrar_client.doRegistrarDelete(
             self.registrar_ip, self.registrar_port, self.agent_uuid)
 
-    def do_cvreactivate(self, verifier_check=True):
+    def do_cvreactivate(self, verifier_check):
         """ Reactive Agent
         """
         if verifier_check:
@@ -1179,7 +1179,7 @@ def main(argv=sys.argv):
             mytenant.do_verify()
     elif args.command == 'update':
         mytenant.init_add(vars(args))
-        mytenant.do_cvdelete()
+        mytenant.do_cvdelete(args.verifier_check)
         mytenant.preloop()
         mytenant.do_cv()
         mytenant.do_quote()
