@@ -505,9 +505,6 @@ class tpm(tpm_abstract.AbstractTPM):
             logger.info("Taking ownership with config provided TPM owner password")
             owner_pw = config_pw
 
-        logger.debug("Removing all saved sessions from TPM")
-        retDict = self.__run(["tpm2_flushcontext", "-s"], raiseOnError=False)
-
         if self.tools_version == "3.2":
             retDict = self.__run(["tpm2_takeownership", "-c"], raiseOnError=False)
             retDict = self.__run(["tpm2_takeownership", "-o", owner_pw, "-e", owner_pw],
@@ -620,7 +617,7 @@ class tpm(tpm_abstract.AbstractTPM):
                     elif self.tools_version in ["4.0", "4.2"]:
                         logger.info("Failed to flush old ak handle: %s.  Code %s" % (aik_handle, str(code) + ": " + str(reterr)))
 
-                self._set_tpm_metadata('aik_pw', None)
+                #self._set_tpm_metadata('aik_pw', None)
                 self._set_tpm_metadata('aik_tpm', None)
                 self._set_tpm_metadata('aik_handle', None)
 
@@ -631,7 +628,7 @@ class tpm(tpm_abstract.AbstractTPM):
         if ek_handle is None:
             raise Exception("Failed to create AIK, since EK has not yet been created!")
 
-        aik_pw = tpm_abstract.TPM_Utilities.random_password(20)
+        #aik_pw = tpm_abstract.TPM_Utilities.random_password(20)
         # make a temp file for the output
         with tempfile.NamedTemporaryFile() as akpubfile:
             secpath = ""
@@ -643,12 +640,14 @@ class tpm(tpm_abstract.AbstractTPM):
             if self.tools_version == "3.2":
                 command = ["tpm2_getpubak", "-E", hex(ek_handle), "-k", "0x81010008",
                            "-g", asym_alg, "-D", hash_alg, "-s", sign_alg,
-                           "-f", akpubfile.name, "-e", owner_pw, "-P", aik_pw,
+                           "-f", akpubfile.name, "-e", owner_pw,
+                           #"-f", akpubfile.name, "-e", owner_pw, "-P", aik_pw,
                            "-o", owner_pw]
             elif self.tools_version in ["4.0", "4.2"]:
                 command = ["tpm2_createak", "-C", hex(ek_handle), "-c", secpath,
                            "-G", asym_alg, "-g", hash_alg, "-s", sign_alg,
-                           "-u", akpubfile.name, "-p", aik_pw, "-P", owner_pw]
+                           "-u", akpubfile.name, "-P", owner_pw]
+                           #"-u", akpubfile.name, "-p", aik_pw, "-P", owner_pw]
             retDict = self.__run(command, outputpaths=akpubfile.name)
             retout = retDict['retout']
             reterr = retDict['reterr']
@@ -681,7 +680,7 @@ class tpm(tpm_abstract.AbstractTPM):
             self._set_tpm_metadata('aik_handle', handle)
 
         # persist common results
-        self._set_tpm_metadata('aik_pw', aik_pw)
+        #self._set_tpm_metadata('aik_pw', aik_pw)
 
     def flush_keys(self):
         logger.debug("Flushing keys from TPM...")
@@ -802,17 +801,19 @@ class tpm(tpm_abstract.AbstractTPM):
             secfd, secpath = tempfile.mkstemp(dir=secdir)
             sesspathfd, sesspath = tempfile.mkstemp(dir=secdir)
 
-            apw = self.get_tpm_metadata('aik_pw')
+            #apw = self.get_tpm_metadata('aik_pw')
             if self.tools_version == "3.2":
                 command = ["tpm2_activatecredential", "-H", hex(aik_keyhandle),
                            "-k", hex(ek_keyhandle), "-f", keyblobFile.name,
-                           "-o", secpath, "-P", apw, "-e", owner_pw]
+                           "-o", secpath, "-e", owner_pw]
+                           #"-o", secpath, "-P", apw, "-e", owner_pw]
                 retDict = self.__run(command, outputpaths=secpath)
             elif self.tools_version in ["4.0", "4.2"]:
                 self.__run(["tpm2_startauthsession", "--policy-session", "-S", sesspath])
                 self.__run(["tpm2_policysecret", "-S", sesspath, "-c", "0x4000000B", owner_pw])
                 command = ["tpm2_activatecredential", "-c", aik_keyhandle, "-C", hex(ek_keyhandle),
-                           "-i", keyblobFile.name, "-o", secpath, "-p", apw,
+                           "-i", keyblobFile.name, "-o", secpath,
+                           #"-i", keyblobFile.name, "-o", secpath, "-p", apw,
                            "-P", "session:%s" % sesspath]
                 retDict = self.__run(command, outputpaths=secpath)
                 self.__run(["tpm2_flushcontext", sesspath])
@@ -942,7 +943,7 @@ class tpm(tpm_abstract.AbstractTPM):
                 tempfile.NamedTemporaryFile() as sigpath, \
                 tempfile.NamedTemporaryFile() as pcrpath:
             keyhandle = self.get_tpm_metadata('aik_handle')
-            aik_pw = self.get_tpm_metadata('aik_pw')
+            #aik_pw = self.get_tpm_metadata('aik_pw')
 
             if pcrmask is None:
                 pcrmask = tpm_abstract.AbstractTPM.EMPTYMASK
@@ -960,9 +961,11 @@ class tpm(tpm_abstract.AbstractTPM):
 
                 nonce = bytes(nonce, encoding="utf8").hex()
                 if self.tools_version == "3.2":
-                    command = ["tpm2_quote", "-k", hex(keyhandle), "-L", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-p", pcrpath.name, "-G", hash_alg, "-P", aik_pw]
+                    command = ["tpm2_quote", "-k", hex(keyhandle), "-L", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-p", pcrpath.name, "-G", hash_alg]
+                    #command = ["tpm2_quote", "-k", hex(keyhandle), "-L", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-p", pcrpath.name, "-G", hash_alg, "-P", aik_pw]
                 elif self.tools_version in ["4.0", "4.2"]:
-                    command = ["tpm2_quote", "-c", keyhandle, "-l", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-o", pcrpath.name, "-g", hash_alg, "-p", aik_pw]
+                    command = ["tpm2_quote", "-c", keyhandle, "-l", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-o", pcrpath.name, "-g", hash_alg]
+                    #command = ["tpm2_quote", "-c", keyhandle, "-l", "%s:%s" % (hash_alg, pcrlist), "-q", nonce, "-m", quotepath.name, "-s", sigpath.name, "-o", pcrpath.name, "-g", hash_alg, "-p", aik_pw]
                 retDict = self.__run(command, lock=False, outputpaths=[quotepath.name, sigpath.name, pcrpath.name])
                 quoteraw = retDict['fileouts'][quotepath.name]
                 quote_b64encode = base64.b64encode(zlib.compress(quoteraw))
